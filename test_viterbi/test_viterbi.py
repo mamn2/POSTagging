@@ -18,16 +18,55 @@ the Viterbi algorithm correctly assigns the tag as VB in this context based on t
 """
 from utils import read_files, get_nested_dictionaries
 import math
+import numpy as np
 
 def main():
-    test, emission, transition, output = read_files()
+    test_sentences, emission, transition, output = read_files()
     emission, transition = get_nested_dictionaries(emission, transition)
     initial = transition["START"]
     prediction = []
     
     """WRITE YOUR VITERBI IMPLEMENTATION HERE"""
+    states = tuple(emission.keys())
 
-    print('Your Output is:',prediction,'\n Expected Output is:',output)
+    for test in test_sentences:
+
+        viterbi = np.zeros((len(states), len(test)))
+        backpointer = np.zeros((len(states), len(test)))
+
+        for s in range(len(states)):
+            viterbi[s][0] = initial[states[s]] * emission[states[s]][test[0]]
+
+        for t in range(1, len(test)):
+            for s in range(len(states)):
+
+                maxValue = 0
+                maxValueIndex = 0
+                for state in range(len(states)):
+                    calc = viterbi[state][t-1] * transition[states[state]][states[s]] * emission[states[s]][test[t]]
+                    if calc > maxValue:
+                        maxValue = calc
+                        maxValueIndex = state
+
+                viterbi[s][t] = maxValue
+                backpointer[s][t] = maxValueIndex
+
+        bestPathPointer = 0
+        bestPathProb = 0
+        for s in range(len(states)):
+            if viterbi[s][len(test) - 1] > bestPathProb:
+                bestPathPointer = s 
+                bestPathProb = viterbi[s][len(test) - 1]
+
+        bestPath = [0] * len(test)
+        bestPath[len(test) - 1] = states[bestPathPointer]
+        for t in range(len(test) - 2, -1, -1):
+            bestPath[t] = states[int(backpointer[bestPathPointer, t + 1])]
+
+    for t in range(len(bestPath)):
+        bestPath[t] = (test[t], bestPath[t])
+
+    print('Your Output is:',bestPath,'\n Expected Output is:',output)
 
 
 if __name__=="__main__":
