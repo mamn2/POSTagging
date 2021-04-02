@@ -220,7 +220,7 @@ def viterbi_ec(train, test):
             E.g., [[(word1, tag1), (word2, tag2)], [(word3, tag3), (word4, tag4)]]
     '''
 
-    smoothingParam = 0.0005
+    smoothingParam = 0.0001
     uniqueTags, uniqueWords, transitionCounts, transitionCountTotals, emissionCounts, hapaxTags, numHapaxWords, lengthTags = counts(train)
     transitionProbs = calcTransProbs(transitionCounts, transitionCountTotals, uniqueTags, smoothingParam)
     emissionProbs = calcEmissionProbs(emissionCounts, uniqueTags, uniqueWords, hapaxTags, numHapaxWords, smoothingParam)
