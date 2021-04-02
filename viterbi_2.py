@@ -37,7 +37,7 @@ def counts(train):
 
             if curWord in hapaxWords:
                 hapaxWords.remove(curWord)
-                if hapaxTags[curTag] > 0:
+                if curTag in hapaxTags and hapaxTags[curTag] > 0:
                     hapaxTags[curTag] -= 1
             else:
                 hapaxWords.add(curWord)
