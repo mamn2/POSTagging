@@ -1,20 +1,4 @@
-# mp4.py
-# ---------------
-# Licensing Information:  You are free to use or extend this projects for
-# educational purposes provided that (1) you do not distribute or publish
-# solutions, (2) you retain this notice, and (3) you provide clear
-# attribution to the University of Illinois at Urbana-Champaign
-#
-# Created Fall 2018: Margaret Fleck, Renxuan Wang, Tiantian Fang, Edward Huang (adapted from a U. Penn assignment)
-# Modified Spring 2020: Jialu Li, Guannan Guo, and Kiran Ramnath
-# Modified Fall 2020: Amnon Attali, Jatin Arora
-# Modified Spring 2021 by Kiran Ramnath (kiranr2@illinois.edu)
-
-"""
-Part 2: This is the simplest version of viterbi that doesn't do anything special for unseen words
-but it should do better than the baseline at words with multiple tags (because now you're using context
-to predict the tag).
-"""
+# Template fromm UIUC CS440
 
 import math
 import numpy as np 
@@ -28,12 +12,16 @@ def counts(train):
     transitionCountTotals = {}
     emissionCounts = {}
     hapaxWords = set()
-    hapaxTags = {}    
+    hapaxTags = {}
+    lengthTags = {}
+    totalWords = 0
 
     for sentence in train:
         
         prevTag = 'START'
         for curWord, curTag in sentence:
+
+            totalWords += 1
 
             if curWord in hapaxWords:
                 hapaxWords.remove(curWord)
@@ -47,6 +35,14 @@ def counts(train):
 
             uniqueTags.add(curTag)
             uniqueWords.add(curWord)
+
+            if curTag != 'START' and curTag != 'END':
+                if len(curWord) not in lengthTags:
+                    lengthTags[len(curWord)] = { curTag: 1 }
+                else:
+                    if curTag not in lengthTags[len(curWord)]:
+                        lengthTags[len(curWord)][curTag] = 1
+                    lengthTags[len(curWord)][curTag] += 1
     
             if curTag not in emissionCounts:
                 emissionCounts[curTag] = {}
@@ -66,7 +62,7 @@ def counts(train):
 
             prevTag = curTag
 
-    return uniqueTags, uniqueWords, transitionCounts, transitionCountTotals, emissionCounts, hapaxTags, len(hapaxWords)
+    return uniqueTags, uniqueWords, transitionCounts, transitionCountTotals, emissionCounts, hapaxTags, len(hapaxWords), lengthTags
 
 def calcTransProbs(transitionCounts, transitionCountTotals, uniqueTags, smoothingParam):
 
@@ -86,18 +82,32 @@ def calcTransProbs(transitionCounts, transitionCountTotals, uniqueTags, smoothin
     transitionProbs['UNSEEN'] = math.log(smoothingParam / (sum(transitionCountTotals.values()) + ( len(uniqueTags) + 1 ) * smoothingParam))
 
     return transitionProbs
+
+def calcWordLengthProbs(lengthTags, uniqueTags):
+
+    lenProbs = {}
+    for length in lengthTags:
+        if length not in lenProbs:
+            lenProbs[length] = {}
+        for tag in uniqueTags:
+            if tag in lengthTags[length]:
+                lenProbs[length][tag] = math.log((lengthTags[length][tag] + 0.001) / (sum(lengthTags[length].values()) + 0.001 * len(uniqueTags)))
+            else:
+                lenProbs[length][tag] = math.log((0.001) / (sum(lengthTags[length].values()) + 0.001 * len(uniqueTags)))
+
+
+    return lenProbs
     
 def calcEmissionProbs(emissionCounts, uniqueTags, uniqueWords, hapaxTags, numHapaxWords, smoothingParam):
 
 
     hapaxProbs = {}
-
     for tag in uniqueTags:
         if tag in hapaxTags:
-            hapaxProbs[tag] = (hapaxTags[tag] + 5) / (numHapaxWords + len(uniqueTags) * smoothingParam)
+            hapaxProbs[tag] = (hapaxTags[tag] + .001) / (numHapaxWords + len(uniqueTags) * smoothingParam)
         else:
-            hapaxProbs[tag] = 5 / (numHapaxWords + len(uniqueTags) * smoothingParam)
-   
+            hapaxProbs[tag] = .001 / (numHapaxWords + len(uniqueTags) * smoothingParam)
+
 
     emissionProbs = {}
     for word in uniqueWords:
@@ -116,7 +126,7 @@ def calcEmissionProbs(emissionCounts, uniqueTags, uniqueWords, hapaxTags, numHap
 
     return emissionProbs
 
-def posTagging(sentence, tags, transitionProbs, emissionProbs):
+def posTagging(sentence, tags, transitionProbs, emissionProbs, lenProbs):
 
     viterbi = np.zeros((len(sentence), len(tags)))
     backpointer = np.zeros((len(sentence), len(tags)))
@@ -135,8 +145,6 @@ def posTagging(sentence, tags, transitionProbs, emissionProbs):
 
         if tag in emissionProbs and sentence[0] in emissionProbs[tag]:
             emissionsProbsTag = emissionProbs[tag][sentence[0]]
-        else:
-            emissionsProbsTag = emissionProbs[tag]['UNSEEN']
 
         viterbi[0][i] = initialProbsTag + emissionsProbsTag
 
@@ -152,7 +160,7 @@ def posTagging(sentence, tags, transitionProbs, emissionProbs):
             if tags[j] in emissionProbs and word in emissionProbs[tags[j]]:
                 emissionsProbability = emissionProbs[tags[j]][word]
             else:
-                emissionsProbability = emissionProbs[tags[j]]['UNSEEN']
+                emissionsProbability = (emissionProbs[tags[j]]['UNSEEN']) + 3 * (lenProbs[len(sentence[0])][tag])
                 
             for k in range(len(tags)):
 
@@ -194,8 +202,9 @@ def viterbi_2(train, test):
     '''
 
     smoothingParam = 0.0001
-    uniqueTags, uniqueWords, transitionCounts, transitionCountTotals, emissionCounts, hapaxTags, numHapaxWords = counts(train)
+    uniqueTags, uniqueWords, transitionCounts, transitionCountTotals, emissionCounts, hapaxTags, numHapaxWords, lengthTags = counts(train)
     transitionProbs = calcTransProbs(transitionCounts, transitionCountTotals, uniqueTags, smoothingParam)
     emissionProbs = calcEmissionProbs(emissionCounts, uniqueTags, uniqueWords, hapaxTags, numHapaxWords, smoothingParam)
+    lengthProbs = calcWordLengthProbs(lengthTags, uniqueTags)
 
-    return [posTagging(sentence, list(uniqueTags), transitionProbs, emissionProbs) for sentence in test]
+    return [posTagging(sentence, list(uniqueTags), transitionProbs, emissionProbs, lengthProbs) for sentence in test]

@@ -36,6 +36,7 @@ def main(args):
     algorithm = algorithms[args.algorithm]
     
     print("Running {}...".format(args.algorithm))
+    
     testtag_predictions = algorithm(train_set, utils.strip_tags(test_set))
     
     baseline_acc, correct_wordtagcounter, wrong_wordtagcounter = utils.evaluate_accuracies(testtag_predictions,
@@ -49,6 +50,7 @@ def main(args):
     print("\tTop K Correct Word-Tag Predictions: {}".format(utils.topk_wordtagcounter(correct_wordtagcounter, k=4)))
     
     print()
+    
     
 
 

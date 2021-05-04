@@ -24,12 +24,13 @@ def main():
     test_sentences, emission, transition, output = read_files()
     emission, transition = get_nested_dictionaries(emission, transition)
     initial = transition["START"]
-    prediction = []
     
     """WRITE YOUR VITERBI IMPLEMENTATION HERE"""
     states = tuple(emission.keys())
 
     for test in test_sentences:
+
+        print(test)
 
         viterbi = np.zeros((len(states), len(test)))
         backpointer = np.zeros((len(states), len(test)))
