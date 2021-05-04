@@ -2,7 +2,7 @@
 
 To run the code on the Brown corpus data you need to tell it where the data is and which algorithm to run, either baseline, viterbi_1, or viterbi_2:
 
-python3 mp4.py --train data/brown-training.txt --test data/brown-dev.txt --algorithm [baseline, viterbi_1, viterbi_2]
+`python3 mp4.py --train data/brown-training.txt --test data/brown-dev.txt --algorithm [baseline, viterbi_1, viterbi_2]`
 
 The baseline algorithm considers each words independently without regard to it's surroundings. For unseen words it just uses the most common part of speech (nouns). It gets about 93.9% accuracy.
 
